@@ -20,12 +20,8 @@ class Player
 	attr_reader :score
 
 	def initialize(name)
-		@name = name.capitalize
+		@name = name
 		@score = 0
-	end
-
-	def to_str
-		@name
 	end
 
 	def update_score(score)
@@ -39,29 +35,19 @@ class Game
 	$DEFAULT_DICE_COUNT = 5
 
 	@@players = []
+	@@turn_count = 0
 
 	def start
-		puts "Welcome to Greed Game! Enter no. of players(>2)?"
+		puts "Enter number of players: "
 		num_players = gets.chomp
 		while !(num_players.to_i.to_s == num_players && num_players.to_i >= 2)
 			puts "Enter Number >= 2"
 			num_players = gets.chomp
 		end
 		num_players.to_i.times do |n|
-			puts "Enter Player. #{n+1} name:"
-			@@players.push(Player.new(gets.chomp))
+			@@players.push(Player.new((n+1).to_s))
 		end
-		get_status
 		play_game
-	end
-
-	def get_status
-		puts "--------------------"
-		puts "Current Scoreboard\n"
-		@@players.each do |player|
-			puts "#{player.name}: #{player.score}"
-		end
-		puts "--------------------"
 	end
 
 	def get_winner
@@ -69,18 +55,18 @@ class Game
 		return @@players[0].name
 	end
 
-	def play_turn
+	def play_turn(player)
 		dice_count = $DEFAULT_DICE_COUNT
 		turn_score = 0
 		while dice_count > 0 do
 			dices = DiceSet.new(dice_count)
 			roll_details = calculate_score(dices.roll)
-			puts "Current Roll details. #{roll_details[:values]} \nCurrent Roll Score. #{roll_details[:score]}"
+			puts "Player #{player.name} rolls: #{roll_details[:values].join(", ")} \nScore in this round: #{roll_details[:score]}"
 			turn_score += roll_details[:score]
 			return 0 if roll_details[:score] == 0
 			roll_details[:count] == 0 ? dice_count = $DEFAULT_DICE_COUNT : dice_count = roll_details[:count]
-			puts "Roll again with #{dice_count} dices or Pass to next player?(Y for Turn, N for Pass)"
-			return turn_score if gets.chomp == "N"
+			puts "Do you want to roll the non-scoring #{dice_count} dice? (y/n):"
+			return turn_score if gets.chomp == "n"
 		end
 		turn_score
 	end
@@ -89,18 +75,21 @@ class Game
 		final_round = false
 		final_mode = false
 		until (final_round && final_mode)
-			puts "Final Round! Final turn for each player!" if final_mode
+			@@turn_count += 1
+			unless final_mode
+				puts "Turn #{@@turn_count}:\n--------"
+			else
+				puts "Final Round!\n--------------"
+			end
 			final_round = true if final_mode
 			@@players.each do |player|
-				puts "Current Player. #{player.name}"
-				turn_score = play_turn
+				turn_score = play_turn(player)
 				player.update_score(turn_score) if turn_score >= $MIN_TURN_SCORE
-				puts "Points scored in current run #{turn_score}. Total score #{player.score}"
+				puts "Score in this turn: #{turn_score}.\nTotal score: #{player.score}\n\n"
 				final_mode = true if player.score >= $FINAL_SCORE
 			end
-			get_status
 			if final_round
-				puts "Game Over! Winner is #{get_winner}!" 
+				puts "Game Over! Winner is Player #{get_winner}!" 
 			end
 		end
 	end
