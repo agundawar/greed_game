@@ -5,22 +5,20 @@ class DiceSet
   	@total = total
   end
   	
-  def roll
-    @values = []
-    @total.times do 
-      @values.push(rand(1..6))
-    end
-    @values
-  end
+	def roll
+		@total.times.map { rand(1..6) }
+	end
 end
 
 
 class Player
 	attr_reader :name
 	attr_reader :score
+	attr_accessor :accumulate
 
 	def initialize(name)
 		@name = name
+		@accumulate = false
 		@score = 0
 	end
 
@@ -30,9 +28,9 @@ class Player
 end
 
 class Game
-	$FINAL_SCORE = 3000
-	$MIN_TURN_SCORE = 300
-	$DEFAULT_DICE_COUNT = 5
+	FINAL_SCORE = 3000
+	MIN_TURN_SCORE = 300
+	DEFAULT_DICE_COUNT = 5
 
 	@@players = []
 	@@turn_count = 0
@@ -52,11 +50,11 @@ class Game
 
 	def get_winner
 		@@players.sort! {|p1, p2| p2.score <=> p1.score}
-		return @@players[0].name
+		@@players[0].name
 	end
 
 	def play_turn(player)
-		dice_count = $DEFAULT_DICE_COUNT
+		dice_count = DEFAULT_DICE_COUNT
 		turn_score = 0
 		while dice_count > 0 do
 			dices = DiceSet.new(dice_count)
@@ -64,7 +62,7 @@ class Game
 			puts "Player #{player.name} rolls: #{roll_details[:values].join(", ")} \nScore in this round: #{roll_details[:score]}"
 			turn_score += roll_details[:score]
 			return 0 if roll_details[:score] == 0
-			roll_details[:count] == 0 ? dice_count = $DEFAULT_DICE_COUNT : dice_count = roll_details[:count]
+			roll_details[:count] == 0 ? dice_count = DEFAULT_DICE_COUNT : dice_count = roll_details[:count]
 			puts "Do you want to roll the non-scoring #{dice_count} dice? (y/n):"
 			return turn_score if gets.chomp == "n"
 		end
@@ -84,9 +82,16 @@ class Game
 			final_round = true if final_mode
 			@@players.each do |player|
 				turn_score = play_turn(player)
-				player.update_score(turn_score) if turn_score >= $MIN_TURN_SCORE
+				if player.accumulate
+					player.update_score(turn_score)
+				else
+					if turn_score >= MIN_TURN_SCORE
+						player.accumulate = true
+						player.update_score(turn_score)
+					end
+				end
 				puts "Score in this turn: #{turn_score}.\nTotal score: #{player.score}\n\n"
-				final_mode = true if player.score >= $FINAL_SCORE
+				final_mode = true if player.score >= FINAL_SCORE
 			end
 			if final_round
 				puts "Game Over! Winner is Player #{get_winner}!" 
